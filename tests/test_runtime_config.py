@@ -97,6 +97,46 @@ class TestRuntimeConfig:
         # assert
         assert inst._settings == expected_settings
 
+    async def test_refresh__update_inner_dict_in_settings__success(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        init_settings = {
+            'downloader': {
+                'name': 'AsyncDownloader',
+                'connection_params': {
+                    'host': '127.0.0.1',
+                    'port': 1234,
+                    'credentials': {'simple': {'login': 'dima', 'password': '12345'}},
+                },
+            }
+        }
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        source_mock.get_settings.return_value = [
+            Setting(
+                name='downloader__connection_params__credentials__simple',
+                value='{"login": "alex", "password": "qwerty"}',
+                value_type=SettingValueType.json,
+                disable=False,
+            )
+        ]
+        expected_settings = {
+            'downloader': {
+                'name': 'AsyncDownloader',
+                'connection_params': {
+                    'host': '127.0.0.1',
+                    'port': 1234,
+                    'credentials': {'simple': {'login': 'alex', 'password': 'qwerty'}},
+                },
+            }
+        }
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert inst._settings == expected_settings
+
     async def test_refresh__invalid_settings_received__invalid_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
     ):

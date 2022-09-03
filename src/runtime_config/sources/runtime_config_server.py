@@ -12,6 +12,8 @@ from runtime_config.entities.runtime_setting_server import Setting
 
 logger = getLogger(__name__)
 
+SettingsType = t.Dict[str, t.Any]
+
 
 class BaseSource(ABC):
     async def get_settings(self) -> t.List[Setting]:

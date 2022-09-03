@@ -8,6 +8,7 @@ from types import TracebackType
 
 from runtime_config import sources
 from runtime_config.converters import converters_map
+from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.exceptions import InstanceNotFound
 from runtime_config.sources.runtime_config_server import BaseSource
 
@@ -18,12 +19,14 @@ _instance = {}
 SettingsType = t.Dict[str, t.Any]
 
 
+# TODO эмулировать интерфейс словаря для получения настроек
 class RuntimeConfig:
     def __init__(self, init_settings: SettingsType, source: BaseSource) -> None:
         self._init_settings: SettingsType = init_settings
         self._settings: SettingsType = {}
 
         self._source = source
+        self.settings_merger = SettingsMerger(init_settings=init_settings)
 
     @staticmethod
     async def create(init_settings: t.Dict[str, t.Any], source: BaseSource | None = None) -> RuntimeConfig:
@@ -43,25 +46,8 @@ class RuntimeConfig:
         return inst
 
     async def refresh(self) -> None:
-        await self._refresh_from_runtime_config_server()
-
-    async def _refresh_from_runtime_config_server(self) -> None:
-        new_settings = copy.deepcopy(self._init_settings)
-
-        for record in await self._source.get_settings():
-            if record.disable:
-                continue
-
-            try:
-                # TODO реализовать парсинг сложного названия настройки, когда там будет зашито в какой уровень
-                #  вложенности вставить
-                new_settings[record.name] = converters_map[record.value_type](record.value)
-            except Exception:
-                logger.warning(
-                    "An unexpected error occurred while converting the setting. name=%s", record.value, exc_info=True
-                )
-
-        self._settings = new_settings
+        extracted_settings = await self._source.get_settings()
+        self._settings = await self.settings_merger.merge(extracted_settings=extracted_settings)
 
     async def close(self) -> None:
         await self._source.close()
@@ -84,3 +70,56 @@ def get_instance() -> RuntimeConfig:
         return _instance['inst']
     except KeyError:
         raise InstanceNotFound('RuntimeConfig')
+
+
+class SettingsMerger:
+    def __init__(self, init_settings: SettingsType):
+        self.init_settings = init_settings
+
+    async def merge(self, extracted_settings: t.List[Setting]) -> SettingsType:
+        new_settings = copy.deepcopy(self.init_settings)
+
+        for setting in extracted_settings:
+            if setting.disable:
+                continue
+
+            self._insert_new_value(new_settings=new_settings, setting=setting)
+
+        return new_settings
+
+    def _insert_new_value(self, new_settings: SettingsType, setting: Setting) -> None:
+        try:
+            new_value = converters_map[setting.value_type](setting.value)
+        except Exception:
+            logger.warning(
+                "Failed to convert setting to required type. name=%s, value_type=%s",
+                setting.name,
+                setting.value_type,
+                exc_info=True,
+            )
+            return
+
+        try:
+            target_dict, key = self._get_target_dict(new_settings, setting_name=setting.name)
+            target_dict[key] = new_value
+        except Exception:
+            logger.warning(
+                "An unexpected error occurred while inserted the setting. name=%s",
+                setting.name,
+                exc_info=True,
+            )
+
+    def _get_target_dict(  # type: ignore[return]
+        self, new_settings: SettingsType, setting_name: str
+    ) -> t.Tuple[dict[str, t.Any], str]:
+        if '__' not in setting_name:
+            return new_settings, setting_name
+        else:
+            path = setting_name.split('__')
+            len_path = len(path)
+            nested_dict = new_settings
+            for index, current_key in enumerate(path):
+                if len_path - index == 1:
+                    return nested_dict, current_key
+                else:
+                    nested_dict = nested_dict[current_key]
