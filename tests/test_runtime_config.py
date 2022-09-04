@@ -1,12 +1,13 @@
 import os
 
+import aiohttp
 import pytest
 from pytest_mock import MockerFixture
 
 from runtime_config import RuntimeConfig, get_instance, sources
 from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.enums.setting_value_type import SettingValueType
-from runtime_config.exceptions import InstanceNotFound
+from runtime_config.exceptions import InstanceNotFound, NotValidResponseError
 from runtime_config.runtime_config import _instance
 
 
@@ -137,7 +138,7 @@ class TestRuntimeConfig:
         # assert
         assert inst._settings == expected_settings
 
-    async def test_refresh__invalid_settings_received__invalid_settings_skipped(
+    async def test_refresh__setting_value_cannot_be_converted_to_required_type__invalid_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
     ):
         # arrange
@@ -145,14 +146,14 @@ class TestRuntimeConfig:
 
         inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
         source_mock.get_settings.return_value = [
-            Setting(name='invalid_setting', value='some_value', value_type=SettingValueType.int, disable=False)
+            Setting(name='invalid_setting', value='some_value', value_type=SettingValueType.bool, disable=False)
         ]
 
         # act
         await inst.refresh()
 
         # assert
-        assert inst._settings == {'db_name': 'main', 'db_connect_timeout': 10}
+        assert inst._settings == init_settings
 
     async def test_refresh__received_disabled_setting__disabled_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
@@ -169,7 +170,73 @@ class TestRuntimeConfig:
         await inst.refresh()
 
         # assert
-        assert inst._settings == {'db_name': 'main', 'db_connect_timeout': 10}
+        assert inst._settings == init_settings
+
+    async def test_refresh__server_returned_invalid_response__settings_have_not_been_updated(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        source_mock.get_settings.side_effect = NotValidResponseError('error msg')
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert inst._settings == init_settings
+
+    async def test_refresh__server_is_not_available__settings_have_not_been_updated(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        source_mock.get_settings.side_effect = aiohttp.ClientConnectionError()
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert inst._settings == init_settings
+
+    async def test_getitem(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        init_settings = {
+            'db': {
+                'name': 'db_name',
+                'port': 1234,
+            },
+            'icq': '15323534',
+        }
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+        # assert
+        assert inst['icq'] == '15323534'
+        assert inst['db']['port'] == 1234
+
+    async def test_getattr(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        init_settings = {
+            'db': {
+                'name': 'db_name',
+                'port': 1234,
+            },
+            'icq': '15323534',
+        }
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+        # assert
+        assert inst.icq == '15323534'
+        assert inst.db['port'] == 1234
 
     async def test_close(self, mocker: MockerFixture, init_settings, source_mock):
         # arrange

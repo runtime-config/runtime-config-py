@@ -9,7 +9,7 @@ from types import TracebackType
 from runtime_config import sources
 from runtime_config.converters import converters_map
 from runtime_config.entities.runtime_setting_server import Setting
-from runtime_config.exceptions import InstanceNotFound
+from runtime_config.exceptions import InstanceNotFound, NotValidResponseError
 from runtime_config.sources.runtime_config_server import BaseSource
 
 logger = getLogger(__name__)
@@ -19,7 +19,6 @@ _instance = {}
 SettingsType = t.Dict[str, t.Any]
 
 
-# TODO эмулировать интерфейс словаря для получения настроек
 class RuntimeConfig:
     def __init__(self, init_settings: SettingsType, source: BaseSource) -> None:
         self._init_settings: SettingsType = init_settings
@@ -46,12 +45,24 @@ class RuntimeConfig:
         return inst
 
     async def refresh(self) -> None:
-        extracted_settings = await self._source.get_settings()
-        self._settings = await self.settings_merger.merge(extracted_settings=extracted_settings)
+        try:
+            extracted_settings = await self._source.get_settings()
+        except NotValidResponseError as exc:
+            logger.error(str(exc), exc_info=True)
+        except Exception:
+            logger.error('An unexpected error occurred while fetching new settings from the server', exc_info=True)
+        else:
+            self._settings = await self.settings_merger.merge(extracted_settings=extracted_settings)
 
     async def close(self) -> None:
         await self._source.close()
         _instance.pop('inst')
+
+    def __getitem__(self, key: str) -> t.Any:
+        return self._settings[key]
+
+    def __getattr__(self, attr: str) -> t.Any:
+        return self._settings[attr]
 
     async def __aenter__(self) -> RuntimeConfig:
         return self
@@ -82,7 +93,6 @@ class SettingsMerger:
         for setting in extracted_settings:
             if setting.disable:
                 continue
-
             self._insert_new_value(new_settings=new_settings, setting=setting)
 
         return new_settings
