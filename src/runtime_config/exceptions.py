@@ -2,6 +2,10 @@ class RuntimeConfigBaseException(Exception):
     pass
 
 
+class InstanceAlreadyCreated(RuntimeConfigBaseException):
+    pass
+
+
 class InstanceNotFound(RuntimeConfigBaseException):
     default_msg: str = (
         "Failed to find service instance {service_name}, " "initialize service before attempting to get an instance."

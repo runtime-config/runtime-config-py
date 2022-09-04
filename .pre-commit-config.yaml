@@ -12,7 +12,7 @@ repos:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 22.8.0
     hooks:
       - id: black
 
@@ -27,6 +27,6 @@ repos:
       - id: mypy
         name: mypy
         language: system
-        entry: poetry run mypy
+        entry: poetry run mypy --show-error-codes
         types: [python]
-        exclude: tests|migrations
+        exclude: tests|setup.py|example

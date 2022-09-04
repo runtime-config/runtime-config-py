@@ -7,12 +7,16 @@ from pytest_mock import MockerFixture
 from runtime_config import RuntimeConfig, get_instance, sources
 from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.enums.setting_value_type import SettingValueType
-from runtime_config.exceptions import InstanceNotFound, NotValidResponseError
+from runtime_config.exceptions import (
+    InstanceAlreadyCreated,
+    InstanceNotFound,
+    NotValidResponseError,
+)
 from runtime_config.runtime_config import _instance
 
 
 class TestRuntimeConfig:
-    async def test_create__source_auto_initialization__success(self, mocker: MockerFixture, init_settings):
+    async def test_create(self, mocker: MockerFixture, init_settings):
         # arrange
         host = '127.0.0.1'
         service_name = 'service_name'
@@ -23,12 +27,42 @@ class TestRuntimeConfig:
         source_mock = mocker.patch(
             'runtime_config.runtime_config.sources.RuntimeConfigServer', spec=sources.RuntimeConfigServer
         )
+        periodic_refresh_task_mock = mocker.patch('runtime_config.runtime_config.periodic_task')
+
+        refresh_interval = 11
 
         # act
-        await RuntimeConfig.create(init_settings=init_settings)
+        inst = await RuntimeConfig.create(init_settings=init_settings, refresh_interval=refresh_interval)
 
         # assert
         source_mock.assert_called_with(host=host, service_name=service_name)
+        periodic_refresh_task_mock.assert_called_with(inst.refresh, callback_time=refresh_interval)
+
+    async def test_context_management_protocol(self, mocker: MockerFixture, init_settings):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        source_mock = mocker.Mock(spec=sources.RuntimeConfigServer)
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        async with inst:
+            pass
+
+        # assert
+        assert source_mock.close.call_count == 1
+
+    async def test_create__attempt_create_multiple_instances__raise_exception(
+        self, mocker: MockerFixture, init_settings
+    ):
+        # arrange
+        inst = mocker.Mock()
+        mocker.patch.dict(_instance, {'inst': inst}, clear=True)
+
+        # act && assert
+        with pytest.raises(InstanceAlreadyCreated):
+            await RuntimeConfig.create(init_settings=init_settings)
+
+        assert _instance['inst'] is inst
 
     async def test_create__source_auto_initialization_without_required_environment_vars__raise_exception(
         self, mocker: MockerFixture, init_settings
@@ -138,6 +172,53 @@ class TestRuntimeConfig:
         # assert
         assert inst._settings == expected_settings
 
+    async def test_refresh__insert_new_settings_in_inner_dict__success(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        init_settings = {
+            'downloader': {
+                'name': 'AsyncDownloader',
+            },
+        }
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        source_mock.get_settings.return_value = [
+            Setting(
+                name='downloader__connection_params__credentials__simple',
+                value='{"login": "alex", "password": "qwerty"}',
+                value_type=SettingValueType.json,
+                disable=False,
+            )
+        ]
+        expected_settings = {
+            'downloader': {
+                'name': 'AsyncDownloader',
+                'connection_params': {
+                    'credentials': {'simple': {'login': 'alex', 'password': 'qwerty'}},
+                },
+            }
+        }
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert inst._settings == expected_settings
+
+    @pytest.mark.parametrize('exception', [NotValidResponseError, Exception])
+    async def test_refresh__failed_to_get_settings_from_server__config_is_initialized_with_default_settings(
+        self, mocker: MockerFixture, init_settings, source_mock, exception
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        source_mock.get_settings.side_effect = exception
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+        # assert
+        assert inst._settings == init_settings
+
     async def test_refresh__setting_value_cannot_be_converted_to_required_type__invalid_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
     ):
@@ -154,6 +235,31 @@ class TestRuntimeConfig:
 
         # assert
         assert inst._settings == init_settings
+
+    async def test_refresh__unexpected_error_during_merge__previous_settings_are_not_changed(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        source_mock.get_settings.return_value = [
+            Setting(name='db_connect_timeout', value=20, value_type=SettingValueType.int, disable=False)
+        ]
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+        source_mock.get_settings.return_value = [
+            Setting(name='some_var', value=1, value_type=SettingValueType.int, disable=False)
+        ]
+        mocker.patch('runtime_config.runtime_config.SettingsMerger._get_inner_dict', side_effect=Exception)
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert inst._settings == {
+            "db_name": 'main',
+            "db_connect_timeout": 20,
+        }
 
     async def test_refresh__received_disabled_setting__disabled_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
@@ -202,6 +308,26 @@ class TestRuntimeConfig:
         # assert
         assert inst._settings == init_settings
 
+    async def test_get(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        init_settings = {
+            'db': {
+                'name': 'db_name',
+                'port': 1234,
+            },
+            'icq': '15323534',
+        }
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+        # assert
+        assert inst.get('icq') == '15323534'
+        assert inst.get('db')['port'] == 1234
+        assert inst.get('timeout') is None
+        assert inst.get('timeout', default=1) == 1
+
     async def test_getitem(self, mocker: MockerFixture, source_mock):
         # arrange
         mocker.patch.dict(_instance, clear=True)
@@ -237,6 +363,22 @@ class TestRuntimeConfig:
         # assert
         assert inst.icq == '15323534'
         assert inst.db['port'] == 1234
+
+    async def test_getattr__setting_dont_exist__raise_error(self, mocker: MockerFixture, source_mock):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        init_settings = {
+            'db': {
+                'name': 'db_name',
+                'port': 1234,
+            },
+            'icq': '15323534',
+        }
+
+        # act & assert
+        with pytest.raises(AttributeError):
+            inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+            inst.url
 
     async def test_close(self, mocker: MockerFixture, init_settings, source_mock):
         # arrange

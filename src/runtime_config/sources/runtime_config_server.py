@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import os.path
 import typing as t
 from abc import ABC
 from logging import getLogger
 from types import TracebackType
-from urllib.parse import urljoin
+from urllib.parse import urlparse
 
 import aiohttp
 import pydantic
@@ -19,19 +20,26 @@ SettingsType = t.Dict[str, t.Any]
 
 class BaseSource(ABC):
     async def get_settings(self) -> t.List[Setting]:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     async def close(self) -> None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class RuntimeConfigServer(BaseSource):
     def __init__(self, host: str, service_name: str) -> None:
-        self.url = urljoin(host, f'/get_settings/{service_name}/')
+        self._url = self._build_url(host=host, service_name=service_name)
         self._http_client = aiohttp.ClientSession()
 
+    def _build_url(self, host: str, service_name: str) -> str:
+        parsed_url = urlparse(host)
+        if not all([parsed_url.scheme, parsed_url.netloc]):
+            raise ValueError('Invalid host url received')
+
+        return os.path.join(host, 'get_settings', service_name)
+
     async def get_settings(self) -> t.List[Setting]:
-        resp = await self._http_client.get(url=self.url)
+        resp = await self._http_client.get(url=self._url)
         try:
             return [Setting(**row) for row in await resp.json()]
         except pydantic.ValidationError:

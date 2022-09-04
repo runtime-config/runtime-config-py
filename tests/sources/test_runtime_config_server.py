@@ -17,12 +17,21 @@ class TestRuntimeConfigServer:
         client_session_mock = client_session_mock_factory(server_response)
 
         # act
-        async with RuntimeConfigServer(host='127.0.0.1', service_name='name') as inst:
+        async with RuntimeConfigServer(host='http://127.0.0.1', service_name='name') as inst:
             settings = await inst.get_settings()
 
         # assert
         assert settings == [Setting(name='timeout', value='10', value_type=SettingValueType.int, disable=False)]
         assert client_session_mock.close.call_count == 1
+
+    @pytest.mark.parametrize('host', ['127.0.0.1', '127.0.0.1:8000', 'qwerty', '', None])
+    async def test_get_settings__send_not_valid_host__raise_error(self, host):
+        # act
+        with pytest.raises(ValueError) as exc:
+            RuntimeConfigServer(host=host, service_name='name')
+
+        # assert
+        assert str(exc.value) == 'Invalid host url received'
 
     async def test_get_settings__server_return_unexpected_data__raise_error(self, client_session_mock_factory):
         # arrange
@@ -32,7 +41,7 @@ class TestRuntimeConfigServer:
         client_session_mock_factory(server_response)
 
         # act & assert
-        inst = RuntimeConfigServer(host='127.0.0.1', service_name='name')
+        inst = RuntimeConfigServer(host='http://127.0.0.1', service_name='name')
         with pytest.raises(NotValidResponseError):
             await inst.get_settings()
 

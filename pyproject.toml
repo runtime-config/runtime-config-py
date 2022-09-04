@@ -1,11 +1,25 @@
 [tool.poetry]
 name = "runtime-config-py"
-version = "0.1.0"
-description = ""
+version = "0.0.1"
+description = "Library for runtime updating project settings."
 authors = ["Aleksey Petrunnik <petrunnik.a@mail.ru>"]
+license = "MIT"
+packages = [{ include = "runtime_config", from = "src" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8, <3.11"
 aiohttp = {version = "^3.8.1", extras = ["speedups"]}
 pydantic = "^1.10.1"
 
@@ -13,12 +27,21 @@ pydantic = "^1.10.1"
 pytest = "^7.1.2"
 pytest-asyncio = "^0.18.3"
 pytest-mock = "^3.8.2"
+pytest-cov = "^3.0.0"
 autopep8 = "^1.6.0"
 black = "^22.8.0"
 flake8 = "^4.0.1"
 isort = "^5.10.1"
 mypy = "0.971"
 pre-commit = "^2.19.0"
+dephell = "=0.8.3"
+docutils = '=0.18.1'  # fixed version for correct work dephell
+mistune = '=0.8.4'  # fixed version for correct work dephell
+tomlkit = "=0.7.0"  # fixed version for correct work dephell
+
+[tool.dephell.main]
+from = {format = "poetry", path = "pyproject.toml"}
+to = {format = "setuppy", path = "setup.py"}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -37,7 +60,6 @@ profile = "black"
 python_version = "3.8"
 disallow_any_generics = true
 disallow_untyped_defs = true
-exclude = "tests"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
