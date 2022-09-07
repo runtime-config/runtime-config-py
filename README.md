@@ -28,7 +28,13 @@ Table of contents:
 
 # Installation
 
-This project can be installed directly from git:
+This project can be installed using pip:
+
+```
+pip install runtime-config-py
+```
+
+Or it can be installed directly from git:
 
 ```
 pip install git+https://github.com/aleksey925/runtime-config-py.git
