@@ -2,9 +2,12 @@
 name = "runtime-config-py"
 version = "0.0.1"
 description = "Library for runtime updating project settings."
-authors = ["Aleksey Petrunnik <petrunnik.a@mail.ru>"]
 license = "MIT"
+authors = ["Aleksey Petrunnik <petrunnik.a@mail.ru>"]
+maintainers = ["Aleksey Petrunnik <petrunnik.a@mail.ru>"]
+repository = "https://github.com/aleksey925/runtime-config-py"
 packages = [{ include = "runtime_config", from = "src" }]
+readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",

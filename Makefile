@@ -8,4 +8,5 @@ build:
 	rm ./setup.py; \
 	rm -rf ./dist; \
  	dephell deps convert; \
- 	poetry build;
+ 	poetry build; \
+ 	pre-commit run --all;
