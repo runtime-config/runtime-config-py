@@ -37,14 +37,6 @@ flake8 = "^4.0.1"
 isort = "^5.10.1"
 mypy = "0.971"
 pre-commit = "^2.19.0"
-dephell = "=0.8.3"
-docutils = '=0.18.1'  # fixed version for correct work dephell
-mistune = '=0.8.4'  # fixed version for correct work dephell
-tomlkit = "=0.7.0"  # fixed version for correct work dephell
-
-[tool.dephell.main]
-from = {format = "poetry", path = "pyproject.toml"}
-to = {format = "setuppy", path = "setup.py"}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
