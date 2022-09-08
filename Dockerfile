@@ -16,7 +16,8 @@ RUN apt update \
     && apt-get purge -y wget \
     && apt autoremove -y \
     && apt autoclean -y \
-    && rm -fr /var/lib/apt/lists /var/lib/cache/* /var/log/*
+    && rm -fr /var/lib/apt/lists /var/lib/cache/* /var/log/* \
+    && touch README.md
 
 COPY pyproject.toml poetry.lock /opt/app/
 RUN /bin/bash -c 'mkdir -p src/runtime_config && touch src/runtime_config/__init__.py && poetry install --no-interaction --no-ansi'

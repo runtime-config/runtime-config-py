@@ -4,11 +4,11 @@ from pytest_mock import MockerFixture
 
 from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.enums.setting_value_type import SettingValueType
-from runtime_config.exceptions import NotValidResponseError
-from runtime_config.sources import RuntimeConfigServer
+from runtime_config.exceptions import ValidationError
+from runtime_config.sources import ConfigServerSrc
 
 
-class TestRuntimeConfigServer:
+class TestConfigServerSrc:
     async def test_get_settings(self, client_session_mock_factory):
         # arrange
         server_response = [
@@ -17,7 +17,7 @@ class TestRuntimeConfigServer:
         client_session_mock = client_session_mock_factory(server_response)
 
         # act
-        async with RuntimeConfigServer(host='http://127.0.0.1', service_name='name') as inst:
+        async with ConfigServerSrc(host='http://127.0.0.1', service_name='name') as inst:
             settings = await inst.get_settings()
 
         # assert
@@ -28,7 +28,7 @@ class TestRuntimeConfigServer:
     async def test_get_settings__send_not_valid_host__raise_error(self, host):
         # act
         with pytest.raises(ValueError) as exc:
-            RuntimeConfigServer(host=host, service_name='name')
+            ConfigServerSrc(host=host, service_name='name')
 
         # assert
         assert str(exc.value) == 'Invalid host url received'
@@ -41,8 +41,8 @@ class TestRuntimeConfigServer:
         client_session_mock_factory(server_response)
 
         # act & assert
-        inst = RuntimeConfigServer(host='http://127.0.0.1', service_name='name')
-        with pytest.raises(NotValidResponseError):
+        inst = ConfigServerSrc(host='http://127.0.0.1', service_name='name')
+        with pytest.raises(ValidationError):
             await inst.get_settings()
 
     @pytest.fixture
@@ -51,7 +51,7 @@ class TestRuntimeConfigServer:
             resp_mock = mocker.Mock()
             resp_mock.json = mocker.AsyncMock(return_value=response)
             client_session_mock = mocker.patch(
-                'runtime_config.sources.runtime_config_server.aiohttp.ClientSession', spec=aiohttp.ClientSession
+                'runtime_config.sources.config_server.aiohttp.ClientSession', spec=aiohttp.ClientSession
             )()
             client_session_mock.get = mocker.AsyncMock(return_value=resp_mock)
 
