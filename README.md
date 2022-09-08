@@ -48,7 +48,7 @@ Let's see a simple example of using this library together with aiohttp.
 from aiohttp import web
 
 from runtime_config import RuntimeConfig
-from runtime_config.sources import RuntimeConfigServer
+from runtime_config.sources import ConfigServerSrc
 
 
 async def hello(request):
@@ -57,7 +57,7 @@ async def hello(request):
 
 
 async def init(application):
-    source = RuntimeConfigServer(host='http://127.0.0.1:8080', service_name='hello_world')
+    source = ConfigServerSrc(host='http://127.0.0.1:8080', service_name='hello_world')
     config = await RuntimeConfig.create(init_settings={'name': 'Alex'}, source=source)
     application['config'] = config
 
@@ -76,6 +76,16 @@ web.run_app(app, port=5000)
 Before running this code, you need to run [server](https://github.com/aleksey925/runtime-config) from which this
 library can take new values for your variables.
 If you don't do this, nothing bad will not happen. You simply cannot change the value of the name variable at runtime :)
+
+**Automatic source initialization**
+
+You can simplify library initialization by automatically creating a source instance. Simply define the following
+environment variables and the source instance will be created automatically:
+
+- RUNTIME_CONFIG_HOST
+- RUNTIME_CONFIG_SERVICE_NAME
+
+**Ways to access settings**
 
 This library supports several ways to access variables. All of them are shown below:
 

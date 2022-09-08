@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os.path
 import typing as t
-from abc import ABC
 from logging import getLogger
 from types import TracebackType
 from urllib.parse import urlparse
@@ -11,22 +10,19 @@ import aiohttp
 import pydantic
 
 from runtime_config.entities.runtime_setting_server import Setting
-from runtime_config.exceptions import NotValidResponseError
+from runtime_config.exceptions import ValidationError
+from runtime_config.sources.base_src import BaseSource
 
 logger = getLogger(__name__)
 
 SettingsType = t.Dict[str, t.Any]
 
 
-class BaseSource(ABC):
-    async def get_settings(self) -> t.List[Setting]:
-        raise NotImplementedError  # pragma: no cover
+class ConfigServerSrc(BaseSource):
+    """
+    Source that allows you to get settings from the runtime-config server.
+    """
 
-    async def close(self) -> None:
-        raise NotImplementedError  # pragma: no cover
-
-
-class RuntimeConfigServer(BaseSource):
     def __init__(self, host: str, service_name: str) -> None:
         self._url = self._build_url(host=host, service_name=service_name)
         self._http_client = aiohttp.ClientSession()
@@ -43,7 +39,7 @@ class RuntimeConfigServer(BaseSource):
         try:
             return [Setting(**row) for row in await resp.json()]
         except pydantic.ValidationError:
-            raise NotValidResponseError(
+            raise ValidationError(
                 'Server returned an invalid response. Check the compatibility of the server that stores the settings '
                 'with the current version of the library.'
             )
@@ -51,7 +47,7 @@ class RuntimeConfigServer(BaseSource):
     async def close(self) -> None:
         await self._http_client.close()
 
-    async def __aenter__(self) -> RuntimeConfigServer:
+    async def __aenter__(self) -> ConfigServerSrc:
         return self
 
     async def __aexit__(

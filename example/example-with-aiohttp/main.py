@@ -1,7 +1,7 @@
 from aiohttp import web
 
 from runtime_config import RuntimeConfig
-from runtime_config.sources import RuntimeConfigServer
+from runtime_config.sources import ConfigServerSrc
 
 
 async def hello(request):
@@ -10,7 +10,7 @@ async def hello(request):
 
 
 async def init(application):
-    source = RuntimeConfigServer(host='http://127.0.0.1:8080', service_name='hello_world')
+    source = ConfigServerSrc(host='http://127.0.0.1:8080', service_name='hello_world')
     config = await RuntimeConfig.create(init_settings={'name': 'Alex'}, source=source)
     application['config'] = config
 

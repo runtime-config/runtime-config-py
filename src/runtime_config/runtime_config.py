@@ -10,13 +10,9 @@ from types import TracebackType
 from runtime_config import sources
 from runtime_config.converters import converters_map
 from runtime_config.entities.runtime_setting_server import Setting
-from runtime_config.exceptions import (
-    InstanceAlreadyCreated,
-    InstanceNotFound,
-    NotValidResponseError,
-)
+from runtime_config.exceptions import InitializationError, ValidationError
 from runtime_config.libs.asyncio_utils import periodic_task
-from runtime_config.sources.runtime_config_server import BaseSource
+from runtime_config.sources.config_server import BaseSource
 
 logger = getLogger(__name__)
 
@@ -31,7 +27,7 @@ class RuntimeConfig:
         self._settings: SettingsType = {}
 
         self._source = source
-        self.settings_merger = SettingsMerger(init_settings=init_settings)
+        self._settings_merger = SettingsMerger(init_settings=init_settings)
         self._periodic_refresh_task: asyncio.Task[None] = periodic_task(self.refresh, callback_time=refresh_interval)
 
     @staticmethod
@@ -46,7 +42,7 @@ class RuntimeConfig:
         :return: initialized class instance.
         """
         if 'inst' in _instance:
-            raise InstanceAlreadyCreated('You have already initialized the RuntimeConfig instance.')
+            raise InitializationError('You have already initialized the RuntimeConfig instance.')
 
         if source is None:
             host = os.environ.get('RUNTIME_CONFIG_HOST')
@@ -56,7 +52,7 @@ class RuntimeConfig:
                     'Define RUNTIME_CONFIG_HOST and RUNTIME_CONFIG_SERVICE_NAME environment variables or initialize '
                     'source manually and pass it to create method.'
                 )
-            source = sources.RuntimeConfigServer(host=host, service_name=service_name)
+            source = sources.ConfigServerSrc(host=host, service_name=service_name)
 
         inst = RuntimeConfig(init_settings=init_settings, source=source, refresh_interval=refresh_interval)
         _instance['inst'] = inst
@@ -67,13 +63,13 @@ class RuntimeConfig:
         extracted_settings = []
         try:
             extracted_settings = await self._source.get_settings()
-        except NotValidResponseError as exc:
+        except ValidationError as exc:
             logger.error(str(exc), exc_info=True)
         except Exception:
             logger.error('An unexpected error occurred while fetching new settings from the server', exc_info=True)
 
         try:
-            self._settings = await self.settings_merger.merge(extracted_settings=extracted_settings)
+            self._settings = await self._settings_merger.merge(extracted_settings=extracted_settings)
         except Exception:
             logger.error('An unexpected error occurred while merge settings', exc_info=True)
 
@@ -110,7 +106,9 @@ def get_instance() -> RuntimeConfig:
     try:
         return _instance['inst']
     except KeyError:
-        raise InstanceNotFound('RuntimeConfig')
+        raise InitializationError(
+            'You have not created a RuntimeConfig instance. You need to execute the RuntimeConfig.create method.'
+        )
 
 
 class SettingsMerger:

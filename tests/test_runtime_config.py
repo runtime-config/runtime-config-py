@@ -7,11 +7,7 @@ from pytest_mock import MockerFixture
 from runtime_config import RuntimeConfig, get_instance, sources
 from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.enums.setting_value_type import SettingValueType
-from runtime_config.exceptions import (
-    InstanceAlreadyCreated,
-    InstanceNotFound,
-    NotValidResponseError,
-)
+from runtime_config.exceptions import InitializationError, ValidationError
 from runtime_config.runtime_config import _instance
 
 
@@ -25,7 +21,7 @@ class TestRuntimeConfig:
         mocker.patch.dict(os.environ, {'RUNTIME_CONFIG_HOST': host, 'RUNTIME_CONFIG_SERVICE_NAME': service_name})
 
         source_mock = mocker.patch(
-            'runtime_config.runtime_config.sources.RuntimeConfigServer', spec=sources.RuntimeConfigServer
+            'runtime_config.runtime_config.sources.ConfigServerSrc', spec=sources.ConfigServerSrc
         )
         periodic_refresh_task_mock = mocker.patch('runtime_config.runtime_config.periodic_task')
 
@@ -41,7 +37,7 @@ class TestRuntimeConfig:
     async def test_context_management_protocol(self, mocker: MockerFixture, init_settings):
         # arrange
         mocker.patch.dict(_instance, clear=True)
-        source_mock = mocker.Mock(spec=sources.RuntimeConfigServer)
+        source_mock = mocker.Mock(spec=sources.ConfigServerSrc)
 
         # act
         inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
@@ -59,7 +55,7 @@ class TestRuntimeConfig:
         mocker.patch.dict(_instance, {'inst': inst}, clear=True)
 
         # act && assert
-        with pytest.raises(InstanceAlreadyCreated):
+        with pytest.raises(InitializationError):
             await RuntimeConfig.create(init_settings=init_settings)
 
         assert _instance['inst'] is inst
@@ -205,7 +201,7 @@ class TestRuntimeConfig:
         # assert
         assert inst._settings == expected_settings
 
-    @pytest.mark.parametrize('exception', [NotValidResponseError, Exception])
+    @pytest.mark.parametrize('exception', [ValidationError, Exception])
     async def test_refresh__failed_to_get_settings_from_server__config_is_initialized_with_default_settings(
         self, mocker: MockerFixture, init_settings, source_mock, exception
     ):
@@ -285,7 +281,7 @@ class TestRuntimeConfig:
         mocker.patch.dict(_instance, clear=True)
 
         inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
-        source_mock.get_settings.side_effect = NotValidResponseError('error msg')
+        source_mock.get_settings.side_effect = ValidationError('error msg')
 
         # act
         await inst.refresh()
@@ -414,8 +410,12 @@ async def test_get_instance__runed_before_create_instance__raise_exception(
     mocker.patch.dict(_instance, clear=True)
 
     # act & assert
-    with pytest.raises(InstanceNotFound):
+    with pytest.raises(InitializationError) as exc:
         get_instance()
+
+    assert str(exc.value) == (
+        'You have not created a RuntimeConfig instance. You need to execute the RuntimeConfig.create method.'
+    )
 
 
 @pytest.fixture(name='init_settings')
@@ -428,6 +428,6 @@ def init_settings_fixture():
 
 @pytest.fixture(name='source_mock')
 def source_mock_fixture(mocker: MockerFixture):
-    source_mock = mocker.Mock(spec=sources.RuntimeConfigServer)
+    source_mock = mocker.Mock(spec=sources.ConfigServerSrc)
     source_mock.get_settings.return_value = []
     return source_mock
