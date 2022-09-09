@@ -1,3 +1,5 @@
+![license](https://img.shields.io/pypi/l/runtime-config-py?style=for-the-badge) ![python version](https://img.shields.io/pypi/pyversions/runtime-config-py?style=for-the-badge) [![version](https://img.shields.io/pypi/v/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/) ![coverage](https://img.shields.io/codecov/c/github/aleksey925/runtime-config-py/master?style=for-the-badge) [![](https://img.shields.io/pypi/dm/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/)
+
 runtime-config-py
 =================
 
