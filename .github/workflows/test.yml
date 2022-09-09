@@ -1,0 +1,66 @@
+name: Testing
+
+on: push
+
+env:
+  POETRY_VERSION: "1.1.13"
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Install poetry
+        run: |
+          wget https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py
+          python ./get-poetry.py --version $POETRY_VERSION
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: poetry install
+        env:
+          POETRY_VIRTUALENVS_CREATE: false
+      - name: Run lint
+        run: poetry run pre-commit run --all
+
+  test:
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: write
+    strategy:
+      matrix:
+        py_version: [ "3.8", "3.9", "3.10" ]
+        os: [ ubuntu-22.04 ]
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "${{ matrix.py_version }}"
+      - name: Install poetry
+        run: |
+          wget https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py
+          python ./get-poetry.py --version $POETRY_VERSION
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: poetry install
+        env:
+          POETRY_VIRTUALENVS_CREATE: false
+      - name: Run tests
+        run: poetry run pytest --cov="runtime_config" .
+      - name: Generate report
+        run: coverage xml
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        if: matrix.os == 'ubuntu-22.04' && matrix.py_version == '3.8' && env.BRANCH_NAME == 'master'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
