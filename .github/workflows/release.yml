@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+env:
+  POETRY_VERSION: "1.1.13"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Install poetry
+        run: |
+          wget https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py
+          python ./get-poetry.py --version $POETRY_VERSION
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+      - name: Install dependencies
+        run: poetry install
+        env:
+          POETRY_VIRTUALENVS_CREATE: false
+      - name: Release package
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --build
