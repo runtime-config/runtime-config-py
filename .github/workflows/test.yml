@@ -1,9 +1,10 @@
-name: Testing
+name: Tests
 
 on: push
 
 env:
   POETRY_VERSION: "1.1.13"
+  MIN_COVERAGE: "97"
 
 jobs:
   lint:
@@ -56,7 +57,14 @@ jobs:
       - name: Run tests
         run: poetry run pytest --cov="runtime_config" .
       - name: Generate report
-        run: coverage xml
+        run: coverage xml && coverage json
+      - name: Check coverage
+        run: |
+          TOTAL_COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
+          if [[ "$TOTAL_COVERAGE" -lt "$MIN_COVERAGE" ]]; then
+            echo "Too low code coverage!"
+            exit 1;
+          fi
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         if: matrix.os == 'ubuntu-22.04' && matrix.py_version == '3.8' && env.BRANCH_NAME == 'master'
