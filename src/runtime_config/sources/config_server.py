@@ -11,7 +11,7 @@ import pydantic
 
 from runtime_config.entities.runtime_setting_server import Setting
 from runtime_config.exceptions import ValidationError
-from runtime_config.sources.base_src import BaseSource
+from runtime_config.sources.base import BaseSource
 
 logger = getLogger(__name__)
 

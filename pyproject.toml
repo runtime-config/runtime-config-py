@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "runtime-config-py"
-version = "0.0.2"
+version = "0.0.3"
 description = "Library for runtime updating project settings."
 license = "MIT"
 authors = ["Aleksey Petrunnik <petrunnik.a@mail.ru>"]

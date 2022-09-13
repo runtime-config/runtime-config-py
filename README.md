@@ -1,4 +1,4 @@
-![license](https://img.shields.io/pypi/l/runtime-config-py?style=for-the-badge) ![python version](https://img.shields.io/pypi/pyversions/runtime-config-py?style=for-the-badge) [![version](https://img.shields.io/pypi/v/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/) ![coverage](https://img.shields.io/codecov/c/github/aleksey925/runtime-config-py/master?style=for-the-badge) ![workflow status](https://img.shields.io/github/workflow/status/aleksey925/runtime-config-py/Tests/master?style=for-the-badge) [![](https://img.shields.io/pypi/dm/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/)
+![license](https://img.shields.io/pypi/l/runtime-config-py?style=for-the-badge) ![python version](https://img.shields.io/pypi/pyversions/runtime-config-py?style=for-the-badge) [![version](https://img.shields.io/pypi/v/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/) ![coverage](https://img.shields.io/codecov/c/github/aleksey925/runtime-config-py/master?style=for-the-badge) [![tests status](https://img.shields.io/github/workflow/status/aleksey925/runtime-config-py/Tests/master?style=for-the-badge)](https://github.com/aleksey925/runtime-config-py/actions?query=branch%3Amaster) [![](https://img.shields.io/pypi/dm/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/)
 
 runtime-config-py
 =================
@@ -104,8 +104,8 @@ backends, such as redis, will probably be added to the library, but this is not 
 
 If you need support for another settings storage source right now, you can write your own source. Implementing this is
 very simple. You need to create a class that will be able to retrieve data from the desired source and will inherit
-from `runtime_config.sources.runtime_config_server.BaseSource`.  After that, an instance of the class you created
-must be passed to the `RuntimeConfig.create` method.
+from `runtime_config.sources.base.BaseSource`. After that, an instance of the class you created must be passed to
+the `RuntimeConfig.create` method.
 
 ```python
 your_source = YourSource(...)
