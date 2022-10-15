@@ -15,17 +15,15 @@ from runtime_config.sources.base import BaseSource
 
 logger = getLogger(__name__)
 
-SettingsType = t.Dict[str, t.Any]
-
 
 class ConfigServerSrc(BaseSource):
     """
     Source that allows you to get settings from the runtime-config server.
     """
 
-    def __init__(self, host: str, service_name: str) -> None:
+    def __init__(self, host: str, service_name: str, http_client: aiohttp.ClientSession = None) -> None:
         self._url = self._build_url(host=host, service_name=service_name)
-        self._http_client = aiohttp.ClientSession()
+        self._http_client = http_client or aiohttp.ClientSession()
 
     def _build_url(self, host: str, service_name: str) -> str:
         parsed_url = urlparse(host)
