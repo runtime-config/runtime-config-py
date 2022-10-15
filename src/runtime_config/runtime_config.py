@@ -23,7 +23,7 @@ SettingsType = t.Dict[str, t.Any]
 
 class RuntimeConfig:
     def __init__(self, init_settings: SettingsType, source: BaseSource, refresh_interval: float) -> None:
-        self._init_settings: SettingsType = init_settings
+        self._init_settings: SettingsType = copy.deepcopy(init_settings)
         self._settings: SettingsType = {}
 
         self._source = source
@@ -32,7 +32,9 @@ class RuntimeConfig:
 
     @staticmethod
     async def create(
-        init_settings: t.Dict[str, t.Any], source: BaseSource | None = None, refresh_interval: float = 10
+        init_settings: t.Dict[str, t.Any],
+        source: BaseSource | None = None,
+        refresh_interval: float = 10,
     ) -> RuntimeConfig:
         """
         Creates and initializes an instance of the class. You should always use this method to instantiate a class.
