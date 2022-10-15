@@ -1,10 +1,10 @@
-![license](https://img.shields.io/pypi/l/runtime-config-py?style=for-the-badge) ![python version](https://img.shields.io/pypi/pyversions/runtime-config-py?style=for-the-badge) [![version](https://img.shields.io/pypi/v/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/) ![coverage](https://img.shields.io/codecov/c/github/aleksey925/runtime-config-py/master?style=for-the-badge) [![tests status](https://img.shields.io/github/workflow/status/aleksey925/runtime-config-py/Tests/master?style=for-the-badge)](https://github.com/aleksey925/runtime-config-py/actions?query=branch%3Amaster) [![](https://img.shields.io/pypi/dm/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/)
+![license](https://img.shields.io/pypi/l/runtime-config-py?style=for-the-badge) ![python version](https://img.shields.io/pypi/pyversions/runtime-config-py?style=for-the-badge) [![version](https://img.shields.io/pypi/v/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/) [![coverage](https://img.shields.io/codecov/c/github/runtime-config/runtime-config-py/master?style=for-the-badge)](https://app.codecov.io/gh/runtime-config/runtime-config-py) [![tests status](https://img.shields.io/github/workflow/status/runtime-config/runtime-config-py/Tests/master?style=for-the-badge)](https://github.com/runtime-config/runtime-config-py/actions?query=branch%3Amaster) [![](https://img.shields.io/pypi/dm/runtime-config-py?style=for-the-badge)](https://pypi.org/project/runtime-config-py/)
 
 runtime-config-py
 =================
 
 This library allows you to update project settings at runtime. In its basic use case, it is just a client for the
-[server](https://github.com/aleksey925/runtime-config), but if necessary, you can implement your adapter for the
+[server](https://github.com/runtime-config/runtime-config), but if necessary, you can implement your adapter for the
 desired source and get settings from them.
 
 runtime-config-py supports Python 3.8+.
@@ -39,7 +39,7 @@ pip install runtime-config-py
 Or it can be installed directly from git:
 
 ```
-pip install git+https://github.com/aleksey925/runtime-config-py.git
+pip install git+https://github.com/runtime-config/runtime-config-py.git
 ```
 
 # Usage
@@ -75,7 +75,7 @@ app.add_routes([web.get('/', hello)])
 web.run_app(app, port=5000)
 ```
 
-Before running this code, you need to run [server](https://github.com/aleksey925/runtime-config) from which this
+Before running this code, you need to run [server](https://github.com/runtime-config/runtime-config) from which this
 library can take new values for your variables.
 If you don't do this, nothing bad will not happen. You simply cannot change the value of the name variable at runtime :)
 
@@ -99,7 +99,7 @@ print(config.get('name', default='Dima'))
 
 # Backend
 
-Currently, only 1 [backend](https://github.com/aleksey925/runtime-config) is supported. Later, support for other
+Currently, only 1 [backend](https://github.com/runtime-config/runtime-config) is supported. Later, support for other
 backends, such as redis, will probably be added to the library, but this is not in the nearest plans.
 
 If you need support for another settings storage source right now, you can write your own source. Implementing this is
