@@ -7,7 +7,7 @@ def periodic_task(
 ) -> asyncio.Task:  # type: ignore[type-arg]
     async def wrapper() -> None:
         while True:
-            await func()
             await asyncio.sleep(callback_time)
+            await func()
 
     return asyncio.create_task(wrapper())

@@ -11,6 +11,7 @@ from runtime_config.exceptions import InitializationError, ValidationError
 from runtime_config.runtime_config import _instance
 
 
+@pytest.mark.usefixtures('mock_periodic_task')
 class TestRuntimeConfig:
     async def test_create(self, mocker: MockerFixture, init_settings):
         # arrange
@@ -431,3 +432,8 @@ def source_mock_fixture(mocker: MockerFixture):
     source_mock = mocker.Mock(spec=sources.ConfigServerSrc)
     source_mock.get_settings.return_value = []
     return source_mock
+
+
+@pytest.fixture(name='mock_periodic_task')
+def mock_periodic_task_fixture(mocker: MockerFixture):
+    mocker.patch('runtime_config.runtime_config.periodic_task')
