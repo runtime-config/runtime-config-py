@@ -1,4 +1,7 @@
 test:
+	pytest --cov="runtime_config" .
+
+test-multi-versions:
 	bash scripts/tests.sh
 
 lint:

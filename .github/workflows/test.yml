@@ -9,8 +9,8 @@ on:
       - 'master'
 
 env:
-  POETRY_VERSION: "1.1.13"
-  MIN_COVERAGE: "97"
+  POETRY_VERSION: "1.2.2"
+  MIN_COVERAGE: "99"
 
 jobs:
   lint:
@@ -23,11 +23,11 @@ jobs:
           python-version: "3.8"
       - name: Install poetry
         run: |
-          wget https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py
+          wget -O get-poetry.py https://install.python-poetry.org
           python ./get-poetry.py --version $POETRY_VERSION
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --all-extras
         env:
           POETRY_VIRTUALENVS_CREATE: false
       - name: Run lint
@@ -51,11 +51,11 @@ jobs:
           python-version: "${{ matrix.py_version }}"
       - name: Install poetry
         run: |
-          wget https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py
+          wget -O get-poetry.py https://install.python-poetry.org
           python ./get-poetry.py --version $POETRY_VERSION
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --all-extras
         env:
           POETRY_VIRTUALENVS_CREATE: false
       - name: Run tests

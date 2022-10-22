@@ -30,21 +30,39 @@ Table of contents:
 
 # Installation
 
-This project can be installed using pip:
+You can install the library like this:
+
+- from pypi
+
+  ```
+  pip install runtime-config-py[aiohttp]
+  ```
+
+  or
+
+  ```
+  poetry add runtime-config-py -E aiohttp
+  ```
+
+- from git:
+
+  ```
+  pip install git+https://github.com/runtime-config/runtime-config-py.git#egg="runtime-config-py[aiohttp]"
+  ```
+
+
+Source dependencies have been moved to extras to give you more control over which libraries are installed. If you
+have a project dependency on a certain version of aiohttp you can install the library without specifying extras.
 
 ```
 pip install runtime-config-py
 ```
 
-Or it can be installed directly from git:
-
-```
-pip install git+https://github.com/runtime-config/runtime-config-py.git
-```
-
 # Usage
 
-Let's see a simple example of using this library together with aiohttp.
+Examples of using the library can be found [here](./example).
+
+Let's see a simple example of using this library together with aiohttp application.
 
 ```python
 from aiohttp import web
@@ -115,13 +133,26 @@ config = await RuntimeConfig.create(..., source=your_source)
 
 # Development
 
+## Install deps
+
+```
+poetry install --all-extras
+```
+
 ## Tests
 
 Check the work of the library on several versions of Python at once using the command below:
 
 ```
+make test-multi-versions
+```
+
+The simple test run is available through the command below:
+
+```
 make test
 ```
+
 
 ## Style code
 
