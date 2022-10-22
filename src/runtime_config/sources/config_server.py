@@ -6,7 +6,13 @@ from logging import getLogger
 from types import TracebackType
 from urllib.parse import urlparse
 
-import aiohttp
+try:
+    import aiohttp
+except ImportError:  # pragma: no cover
+    raise ImportError(
+        'Missing dependencies for ConfigServerSrc support. Please reinstall the library with '
+        'extras "aiohttp". Example: pip install runtime-config-py[aiohttp]'
+    )
 import pydantic
 
 from runtime_config.entities.runtime_setting_server import Setting
