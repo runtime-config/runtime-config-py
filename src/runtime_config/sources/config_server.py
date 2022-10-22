@@ -11,7 +11,7 @@ try:
 except ImportError:  # pragma: no cover
     raise ImportError(
         'Missing dependencies for ConfigServerSrc support. Please reinstall the library with '
-        'extras "aiohttp". Example: pip install runtime-config-py[aiohttp]'
+        'extras "aiohttp". Example: pip install "runtime-config-py[aiohttp]"'
     )
 import pydantic
 

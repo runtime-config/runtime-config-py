@@ -35,7 +35,7 @@ You can install the library like this:
 - from pypi
 
   ```
-  pip install runtime-config-py[aiohttp]
+  pip install "runtime-config-py[aiohttp]"
   ```
 
   or
