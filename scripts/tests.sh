@@ -1,4 +1,4 @@
-SUPPORTED_VERSIONS=("3.8" "3.9" "3.10")
+SUPPORTED_VERSIONS=("3.8" "3.9" "3.10" "3.11")
 EXIT_CODES=()
 
 for ver in "${SUPPORTED_VERSIONS[@]}"; do

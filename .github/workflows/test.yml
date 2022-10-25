@@ -40,7 +40,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        py_version: [ "3.8", "3.9", "3.10" ]
+        py_version: [ "3.8", "3.9", "3.10", "3.11" ]
         os: [ ubuntu-22.04 ]
     runs-on: "${{ matrix.os }}"
     steps:
