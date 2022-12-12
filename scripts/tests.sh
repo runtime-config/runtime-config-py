@@ -1,6 +1,8 @@
 SUPPORTED_VERSIONS=("3.8" "3.9" "3.10" "3.11")
 EXIT_CODES=()
 
+poetry export --with dev --extras aiohttp --without-hashes -o requirements.txt
+
 for ver in "${SUPPORTED_VERSIONS[@]}"; do
   docker build -q --build-arg PYTHON_VERSION=$ver -t test_runtime_config_py . &&
     docker run --rm test_runtime_config_py
@@ -16,5 +18,7 @@ for code in "${EXIT_CODES[@]}"; do
     exit 1
   fi
 done
+
+rm requirements.txt
 
 echo "ALL TESTS COMPLETED SUCCESSFULLY!"

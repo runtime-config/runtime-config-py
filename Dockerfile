@@ -2,27 +2,10 @@ ARG PYTHON_VERSION
 
 FROM python:${PYTHON_VERSION}-buster
 
-ENV POETRY_VERSION=1.2.2
-
 WORKDIR /opt/app/
 
-RUN apt update \
-    && apt-get install -y wget \
-    && ln -s /root/.local/bin/poetry /usr/bin/poetry \
-    && wget -O get-poetry.py https://install.python-poetry.org \
-    && python ./get-poetry.py --version $POETRY_VERSION \
-    && poetry config virtualenvs.create false \
-    && rm ./get-poetry.py \
-    && apt-get purge -y wget \
-    && apt autoremove -y \
-    && apt autoclean -y \
-    && rm -fr /var/lib/apt/lists /var/lib/cache/* /var/log/* \
-    && touch README.md
-
-COPY pyproject.toml poetry.lock /opt/app/
-RUN /bin/bash -c "mkdir -p src/runtime_config  \
-                  && touch src/runtime_config/__init__.py  \
-                  && poetry install --all-extras --no-interaction --no-ansi"
+COPY pyproject.toml requirements.txt /opt/app/
+RUN pip install -r requirements.txt
 
 COPY src/ /opt/app/src
 COPY tests/ /opt/app/tests
