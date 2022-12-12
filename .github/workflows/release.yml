@@ -1,4 +1,4 @@
-name: Release
+name: release
 
 on:
   push:
@@ -19,9 +19,8 @@ jobs:
           python-version: "3.8"
       - name: Install poetry
         run: |
-          wget -O get-poetry.py https://install.python-poetry.org
-          python ./get-poetry.py --version $POETRY_VERSION
-          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+          curl -sSL https://install.python-poetry.org | POETRY_VERSION=$POETRY_VERSION python3
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Install dependencies
         run: poetry install --all-extras
         env:
