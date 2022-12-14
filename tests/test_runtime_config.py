@@ -211,10 +211,22 @@ class TestRuntimeConfig:
         source_mock.get_settings.side_effect = exception
 
         # act
-        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock, require_complete_init=False)
 
         # assert
         assert inst._settings == init_settings
+
+    @pytest.mark.parametrize('exception', [ValidationError, Exception])
+    async def test_refresh__failed_to_get_settings_from_server__raise_exc(
+        self, mocker: MockerFixture, init_settings, source_mock, exception
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+        source_mock.get_settings.side_effect = exception
+
+        # act && assert
+        with pytest.raises(exception):
+            await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
 
     async def test_refresh__setting_value_cannot_be_converted_to_required_type__invalid_settings_skipped(
         self, mocker: MockerFixture, init_settings, source_mock
@@ -229,6 +241,38 @@ class TestRuntimeConfig:
 
         # act
         await inst.refresh()
+
+        # assert
+        assert inst._settings == init_settings
+
+    async def test_refresh__init_instance_successful_init_required_merge_error__raise_exc(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        expected_exception = Exception
+        mocker.patch.dict(_instance, clear=True)
+        source_mock.get_settings.return_value = [
+            Setting(name='some_var', value=1, value_type=SettingValueType.int, disable=False)
+        ]
+        mocker.patch('runtime_config.runtime_config.SettingsMerger._get_inner_dict', side_effect=expected_exception)
+
+        # act && assert
+        with pytest.raises(expected_exception):
+            await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+
+    async def test_refresh__init_instance_successful_init_not_required_merge_error__use_default_settings(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        expected_exception = Exception
+        mocker.patch.dict(_instance, clear=True)
+        source_mock.get_settings.return_value = [
+            Setting(name='some_var', value=1, value_type=SettingValueType.int, disable=False)
+        ]
+        mocker.patch('runtime_config.runtime_config.SettingsMerger._get_inner_dict', side_effect=expected_exception)
+
+        # act
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock, require_complete_init=False)
 
         # assert
         assert inst._settings == init_settings

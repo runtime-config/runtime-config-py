@@ -22,25 +22,36 @@ SettingsType = t.Dict[str, t.Any]
 
 
 class RuntimeConfig:
-    def __init__(self, init_settings: SettingsType, source: BaseSource, refresh_interval: float) -> None:
+    def __init__(
+        self,
+        init_settings: SettingsType,
+        source: BaseSource,
+        refresh_interval: float,
+        require_complete_init: bool = True,
+    ) -> None:
         self._init_settings: SettingsType = copy.deepcopy(init_settings)
-        self._settings: SettingsType = {}
+        self._settings: SettingsType = copy.deepcopy(init_settings)
+        self._initialized = False
 
         self._source = source
         self._settings_merger = SettingsMerger(init_settings=init_settings)
         self._periodic_refresh_task: asyncio.Task[None] = periodic_task(self.refresh, callback_time=refresh_interval)
+        self._require_complete_init = require_complete_init
 
     @staticmethod
     async def create(
         init_settings: t.Dict[str, t.Any],
         source: BaseSource | None = None,
         refresh_interval: float = 10,
+        require_complete_init: bool = True,
     ) -> RuntimeConfig:
         """
         Creates and initializes an instance of the class. You should always use this method to instantiate a class.
         :param init_settings: dictionary with default settings that you can then override.
         :param source: the source from which the actual values of the variables will be retrieved.
         :param refresh_interval: the frequency with which updates will be requested from the source.
+        :param require_complete_init: if set to true, exceptions that occur during the first time settings are
+        received from an external source will not be caught
         :return: initialized class instance.
         """
         if 'inst' in _instance:
@@ -56,24 +67,37 @@ class RuntimeConfig:
                 )
             source = sources.ConfigServerSrc(host=host, service_name=service_name)
 
-        inst = RuntimeConfig(init_settings=init_settings, source=source, refresh_interval=refresh_interval)
+        inst = RuntimeConfig(
+            init_settings=init_settings,
+            source=source,
+            refresh_interval=refresh_interval,
+            require_complete_init=require_complete_init,
+        )
         _instance['inst'] = inst
         await inst.refresh()
+        inst._initialized = True
         return inst
 
     async def refresh(self) -> None:
+        def _check_inst_initialization(inst: RuntimeConfig, exception: Exception) -> None:
+            if not inst._initialized and inst._require_complete_init:
+                raise exception
+
         extracted_settings = []
         try:
             extracted_settings = await self._source.get_settings()
         except ValidationError as exc:
-            logger.error(str(exc), exc_info=True)
-        except Exception:
-            logger.error('An unexpected error occurred while fetching new settings from the server', exc_info=True)
+            logger.error("Fetched not valid data from remote source", exc_info=True)
+            _check_inst_initialization(self, exc)
+        except Exception as exc:
+            logger.error('Fetching new settings from a remote source failed', exc_info=True)
+            _check_inst_initialization(self, exc)
 
         try:
             self._settings = await self._settings_merger.merge(extracted_settings=extracted_settings)
-        except Exception:
-            logger.error('An unexpected error occurred while merge settings', exc_info=True)
+        except Exception as exc:
+            logger.error('Merge settings error', exc_info=True)
+            _check_inst_initialization(self, exc)
 
     def get(self, setting_name: str, default: t.Any = None) -> t.Any:
         return self._settings.get(setting_name, default)
