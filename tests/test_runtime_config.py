@@ -1,3 +1,4 @@
+import copy
 import os
 
 import aiohttp
@@ -200,6 +201,28 @@ class TestRuntimeConfig:
         await inst.refresh()
 
         # assert
+        assert inst._settings == expected_settings
+
+    async def test_refresh__remote_source_not_available__save_previous_setting(
+        self, mocker: MockerFixture, init_settings, source_mock
+    ):
+        # arrange
+        mocker.patch.dict(_instance, clear=True)
+
+        source_mock.get_settings.return_value = [
+            Setting(name='some_var', value=1, value_type=SettingValueType.int, disable=False)
+        ]
+        inst = await RuntimeConfig.create(init_settings=init_settings, source=source_mock)
+        setting_after_init = copy.deepcopy(inst._settings)
+
+        source_mock.get_settings.side_effect = Exception
+        expected_settings = {'some_var': 1, **init_settings}
+
+        # act
+        await inst.refresh()
+
+        # assert
+        assert setting_after_init == expected_settings
         assert inst._settings == expected_settings
 
     @pytest.mark.parametrize('exception', [ValidationError, Exception])

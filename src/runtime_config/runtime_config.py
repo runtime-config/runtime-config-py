@@ -83,7 +83,7 @@ class RuntimeConfig:
             if not inst._initialized and inst._require_complete_init:
                 raise exception
 
-        extracted_settings = []
+        extracted_settings = None
         try:
             extracted_settings = await self._source.get_settings()
         except ValidationError as exc:
@@ -93,11 +93,12 @@ class RuntimeConfig:
             logger.error('Fetching new settings from a remote source failed', exc_info=True)
             _check_inst_initialization(self, exc)
 
-        try:
-            self._settings = await self._settings_merger.merge(extracted_settings=extracted_settings)
-        except Exception as exc:
-            logger.error('Merge settings error', exc_info=True)
-            _check_inst_initialization(self, exc)
+        if extracted_settings is not None:
+            try:
+                self._settings = await self._settings_merger.merge(extracted_settings=extracted_settings)
+            except Exception as exc:
+                logger.error('Merge settings error', exc_info=True)
+                _check_inst_initialization(self, exc)
 
     def get(self, setting_name: str, default: t.Any = None) -> t.Any:
         return self._settings.get(setting_name, default)
